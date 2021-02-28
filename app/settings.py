@@ -1,5 +1,7 @@
 import os
 import datetime
+from dotenv import load_dotenv
+load_dotenv()
 
 
 # Variables set on environment when possible
