@@ -49,7 +49,6 @@ class DailyBot:
         @BOT = information about the BOT
         @update = the user info.
         """
-        self.send_daily(context)
         self.logger.info("Start command received.")
         self.logger.info(f"{update}")
         self.send_type_action(update, context)
