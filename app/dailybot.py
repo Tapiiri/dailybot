@@ -16,12 +16,11 @@ class DailyBot:
         )
         self.logger = logging.getLogger("LOG")
         self.logger.info("Starting BOT.")
-        self.updater = Updater(token)
+        self.updater = Updater(token, use_context=True)
         self.dispatcher = self.updater.dispatcher
-
         self.job = self.updater.job_queue
 
-        self.job_daily = self.job.run_daily(self.send_daily, time=DAILY_TIME, days=(0, 1, 2, 3, 4))
+        self.job_daily = self.job.run_daily(self.send_daily, time=DAILY_TIME, days=(0, 1, 2, 3, 4, 5, 6))
 
         start_handler = CommandHandler("start", self.send_start)
         self.dispatcher.add_handler(start_handler)
@@ -35,16 +34,16 @@ class DailyBot:
         self.dispatcher.add_error_handler(self.error)
 
     @staticmethod
-    def send_type_action(chatbot, update):
+    def send_type_action(update, context):
         """
         Shows status typing when sending message
         """
-        chatbot.send_chat_action(
+        context.bot.send_chat_action(
             chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING
         )
         sleep(1)
 
-    def send_start(self, chatbot, update):
+    def send_start(self, update, context):
         """
         Start command to receive /start message on Telegram.
         @BOT = information about the BOT
@@ -52,7 +51,7 @@ class DailyBot:
         """
         self.logger.info("Start command received.")
         self.logger.info(f"{update}")
-        self.send_type_action(chatbot, update)
+        self.send_type_action(update, context)
 
         chat_id = update.message["chat"]["id"]
         if update.message["chat"]["type"] == "private":
@@ -64,7 +63,7 @@ class DailyBot:
             try:
                 start_text = start_file.read()
                 start_text = start_text.replace("{{name}}", name)
-                chatbot.send_message(
+                context.bot.send_message(
                     chat_id=chat_id,
                     text=start_text,
                     parse_mode=telegram.ParseMode.MARKDOWN,
@@ -76,7 +75,7 @@ class DailyBot:
             if chat_id not in chat_ids:
                 with open("msg/error.md") as error:
                     error = error.read()
-                    chatbot.send_message(
+                    context.bot.send_message(
                         chat_id=chat_id,
                         text=error,
                         parse_mode=telegram.ParseMode.MARKDOWN,
@@ -85,53 +84,54 @@ class DailyBot:
             self.logger.error(error)
         return 0
 
-    def send_daily(self, chatbot, job):
+    def send_daily(self, context):
         """
         Sends text on `daily.md` daily to groups on CHAT_ID
         @BOT = information about the BOT
         @update = the user info.
         """
+        job = context.job
         chat_ids = [int(i) for i in chat_ids]
         for chat_id in chat_ids:
             self.logger.info(f"Sending daily to {chat_id}")
             with open(DAILY_FILE) as daily_file:
                 daily_text = daily_file.read()
-                chatbot.send_message(
+                context.bot.send_message(
                     chat_id=chat_id,
                     text=daily_text,
                     parse_mode=telegram.ParseMode.MARKDOWN,
                 )
         return 0
 
-    def send_example(self, chatbot, update):
+    def send_example(self, update, context):
         """
         Sends example to caller
         @chatbot = information about the BOT
         @update = the user info.
         """
-        self.send_type_action(chatbot, update)
+        self.send_type_action(update, context)
         self.logger.info("Example command received.")
         with open(EXAMPLE_FILE) as example_file:
             example_text = example_file.read()
             print(example_text)
-            chatbot.send_message(
+            context.bot.send_message(
                 chat_id=update.message.chat_id,
                 text=example_text,
                 parse_mode=telegram.ParseMode.MARKDOWN,
             )
             return 0
 
-    def text_message(self, chatbot, update):
-        self.send_type_action(chatbot, update)
+    def text_message(self, update, context):
+        self.send_type_action(update, context)
 
-        chatbot.send_message(
+        context.bot.send_message(
             chat_id=update.message.chat_id,
             text="ok",
             parse_mode=telegram.ParseMode.MARKDOWN,
         )
         return 0
 
-    def error(self, chatbot, update, error):
+    def error(self, update, context, error):
         self.logger.warning(f'Update "{update}" caused error "{error}"')
         return 0
 
@@ -158,7 +158,7 @@ if __name__ == "__main__":
             if LINK:
                 BOT.updater.bot.set_webhook(LINK)
             else:
-                BOT.updater.bot.set_webhook(f"https://{NAME}.herokuapp.com/{TOKEN}")
+                BOT.updater.bot.set_webhook(f"https://{HEROKU_NAME}.herokuapp.com/{TOKEN}")
             BOT.updater.idle()
         else:
             # Run on local system once detected that it's not on Heroku nor ngrok
