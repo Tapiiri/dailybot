@@ -19,14 +19,11 @@ class DailyBot:
         self.updater = Updater(token, use_context=True)
         self.dispatcher = self.updater.dispatcher
         self.job = self.updater.job_queue
-
-        self.job_daily = self.job.run_daily(self.send_daily, time=DAILY_TIME, days=(0, 1, 2, 3, 4, 5, 6))
+        self.chat_ids = CHAT_IDS
+        self.job_daily = self.job.run_daily(self.send_daily, time=DAILY_TIME, days=DAYS)
 
         start_handler = CommandHandler("start", self.send_start)
         self.dispatcher.add_handler(start_handler)
-
-        example_handler = CommandHandler("example", self.send_example)
-        self.dispatcher.add_handler(example_handler)
 
         daily_handler = CommandHandler("daily", self.send_daily)
         self.dispatcher.add_handler(daily_handler)
@@ -59,25 +56,33 @@ class DailyBot:
         else:
             name = update.message["from_user"]["first_name"]
 
-        with open(START_FILE) as start_file:
-            try:
-                start_text = start_file.read()
-                start_text = start_text.replace("{{name}}", name)
-                context.bot.send_message(
-                    chat_id=chat_id,
-                    text=start_text,
-                    parse_mode=telegram.ParseMode.MARKDOWN,
-                )
-            except Exception as error:
-                self.logger.error(error)
+        # try:
+        #     with open(START_FILE) as start_file:
+        #         start_text = start_file.read()
+        #         start_text = start_text.replace("{{name}}", name)
+        #         context.bot.send_message(
+        #             chat_id=chat_id,
+        #             text=start_text,
+        #             parse_mode=telegram.ParseMode.MARKDOWN,
+        #         )
+        # except Exception as error:
+        #     self.logger.error(error)
         try:
-            chat_ids = [int(i) for i in chat_ids]
+            chat_ids = [int(i) for i in self.chat_ids]
             if chat_id not in chat_ids:
-                with open("msg/error.md") as error:
+                with open("app/msg/error.md") as error:
                     error = error.read()
                     context.bot.send_message(
                         chat_id=chat_id,
-                        text=error,
+                        text=error.format(chat_id),
+                        parse_mode=telegram.ParseMode.MARKDOWN,
+                    )
+            else:
+                with open("app/msg/success.md") as success:
+                    success = success.read()
+                    context.bot.send_message(
+                        chat_id=chat_id,
+                        text=success,
                         parse_mode=telegram.ParseMode.MARKDOWN,
                     )
         except Exception as error:
@@ -91,7 +96,7 @@ class DailyBot:
         @update = the user info.
         """
         job = context.job
-        chat_ids = [int(i) for i in chat_ids]
+        chat_ids = [int(i) for i in self.chat_ids]
         for chat_id in chat_ids:
             self.logger.info(f"Sending daily to {chat_id}")
             with open(DAILY_FILE) as daily_file:
@@ -102,24 +107,6 @@ class DailyBot:
                     parse_mode=telegram.ParseMode.MARKDOWN,
                 )
         return 0
-
-    def send_example(self, update, context):
-        """
-        Sends example to caller
-        @chatbot = information about the BOT
-        @update = the user info.
-        """
-        self.send_type_action(update, context)
-        self.logger.info("Example command received.")
-        with open(EXAMPLE_FILE) as example_file:
-            example_text = example_file.read()
-            print(example_text)
-            context.bot.send_message(
-                chat_id=update.message.chat_id,
-                text=example_text,
-                parse_mode=telegram.ParseMode.MARKDOWN,
-            )
-            return 0
 
     def text_message(self, update, context):
         self.send_type_action(update, context)
