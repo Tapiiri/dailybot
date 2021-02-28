@@ -9,6 +9,7 @@ load_dotenv()
 # Required
 TOKEN = os.environ.get("TOKEN", "")
 NAME = os.environ.get("NAME", "")
+HEROKU_NAME = os.environ.get("HEROKU_NAME", "")
 HOUR = int(os.environ.get("HOUR", 10))
 MINUTE = int(os.environ.get("MINUTE", 00))
 TIMEZONE = int(os.environ.get("TIMEZONE", 00))
