@@ -4,6 +4,9 @@ from time import sleep
 import telegram
 from telegram.ext import Updater, CommandHandler
 
+import datetime
+import random
+
 from settings import *
 
 
@@ -25,8 +28,8 @@ class DailyBot:
         start_handler = CommandHandler("start", self.send_start)
         self.dispatcher.add_handler(start_handler)
 
-        daily_handler = CommandHandler("daily", self.send_daily)
-        self.dispatcher.add_handler(daily_handler)
+        # daily_handler = CommandHandler("daily", self.send_daily)
+        # self.dispatcher.add_handler(daily_handler)
 
         self.dispatcher.add_error_handler(self.error)
 
@@ -46,6 +49,7 @@ class DailyBot:
         @BOT = information about the BOT
         @update = the user info.
         """
+        self.send_daily(context)
         self.logger.info("Start command received.")
         self.logger.info(f"{update}")
         self.send_type_action(update, context)
@@ -89,17 +93,25 @@ class DailyBot:
             self.logger.error(error)
         return 0
 
+    def get_daily_file(self, day):
+        subfile = random.randint(0,1)
+        f = "msg/{}_{}.md".format(day, subfile)
+        return f
+
     def send_daily(self, context):
         """
         Sends text on `daily.md` daily to groups on CHAT_ID
         @BOT = information about the BOT
         @update = the user info.
         """
-        job = context.job
+        self.logger.info("Sending dailies")
+        day = datetime.datetime.today().weekday()
+        file_of_day = self.get_daily_file(day)
         chat_ids = [int(i) for i in self.chat_ids]
+        self.logger.info(f"Daily file: {file_of_day}")
         for chat_id in chat_ids:
             self.logger.info(f"Sending daily to {chat_id}")
-            with open(DAILY_FILE) as daily_file:
+            with open(file_of_day, encoding="utf-8") as daily_file:
                 daily_text = daily_file.read()
                 context.bot.send_message(
                     chat_id=chat_id,
@@ -118,8 +130,8 @@ class DailyBot:
         )
         return 0
 
-    def error(self, update, context, error):
-        self.logger.warning(f'Update "{update}" caused error "{error}"')
+    def error(self, update, context):
+        self.logger.warning(f'Update "{update}" caused error "{context.error}"')
         return 0
 
     def run(self):
@@ -150,6 +162,7 @@ if __name__ == "__main__":
             print("Found a PORT to which try to set up webhook")
         else:
             # Run on local system once detected that it's not on Heroku nor ngrok
+            print("Run with polling")
             BOT = DailyBot(TOKEN)
             BOT.run()
     else:
